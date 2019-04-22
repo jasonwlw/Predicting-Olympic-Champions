@@ -1,6 +1,12 @@
 import sys
 from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import SIGNAL
+
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
+
+import time
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -13,8 +19,7 @@ from sklearn.preprocessing import OneHotEncoder
 import Olympic_Analysis as OA
 
 
-### TODO: LOAD TEXT OF VARIABLE DESCRIPTION INTO WINDOW
-### TODO: ADD MODELING TAB
+### TODO: MAKE TEXT IN VARIABLE DESCRIPTION READ ONLY (LOW PRIORITY)
 ### TODO: ADD BEFORE AND AFTER HISTOGRAMS OF DATA FOR IMPUTATION
 ### TODO: ADD FEATURE SELECTION TAB, VISUALS SHOWING HOW DATASET CHANGES
 ### TODO: FIGURE OUT PROGRESS BARS FOR IMPUTATION
@@ -32,12 +37,23 @@ class Window(QtGui.QMainWindow):
         super(Window, self).__init__()
         ### Create preprocessing object
         self.prep = OA.PreProcessing()
+        #self.df1,self.df2 = self.Read_Data()
 
         self.setGeometry(50, 50, 500, 300)
-        self.setWindowTitle("PyQT tuts!")
+        self.setWindowTitle("Olympics")
         self.setWindowIcon(QtGui.QIcon('pythonlogo.png'))
 
         self.connect(self, SIGNAL('main2closed()'), self.clearVars)
+
+
+
+        ### For drop down menu
+        ### Some variables do not work; non-numeric don't
+        #self.var_list = self.prep.df1.columns.values
+        #self.var_list = np.insert(self.var_list,0,'')
+
+        ### Need to add way in Olympic_Analysis to plot Medal histogram, it;s important
+        self.var_list = ['','Age','Height','Weight','Year','Medal']
 
         '''
         extractAction = QtGui.QAction("&GET TO THE CHOPPAH!!!", self)
@@ -55,6 +71,11 @@ class Window(QtGui.QMainWindow):
         self.home()
 
 
+    def Read_Data(self):
+        df1 = pd.read_csv('athlete_events.csv')
+        df2 = pd.read_csv('noc_regions.csv')
+        return (df1, df2)
+
     def home(self):
 
         ### Set main widget
@@ -70,6 +91,7 @@ class Window(QtGui.QMainWindow):
         tab2 = QtGui.QWidget()
         tab3 = QtGui.QWidget()
         tab4 = QtGui.QWidget()
+        tab5 = QtGui.QWidget()
 
         tabs.resize(250, 150)
 
@@ -99,8 +121,43 @@ class Window(QtGui.QMainWindow):
         vBoxlayout.addStretch(1)
 
         ### Impute Mean Ages Button
-        btn1 = QtGui.QPushButton("Age Imputation", self)
-        btn1.clicked.connect(self.prep.Impute_Age_Mean)
+        btn1 = QtGui.QPushButton("Age Imputation By Country", self)
+        btn1.clicked.connect(self.Impute_Age_Mean_Wrap)
+        btn1.resize(btn1.minimumSizeHint())
+        btn1.move(0, 100)
+        vBoxlayout.addWidget(btn1)
+        #hBoxLayout = QtGui.QHBoxLayout(tab2)
+        #hBoxLayout.addStretch(1)
+        #hBoxLayout.addLayout(vBoxlayout)
+        vBoxlayout.addStretch(2)
+
+        ### Impute Mean Height Button
+        btn2 = QtGui.QPushButton("Height Imputation By Country", self)
+        btn2.clicked.connect(self.Impute_Height_Mean_Wrap)
+        btn2.resize(btn2.minimumSizeHint())
+        btn2.move(0, 100)
+        vBoxlayout.addWidget(btn2)
+        vBoxlayout.addStretch(3)
+
+        ### Impute Mean Weight Button
+        btn3 = QtGui.QPushButton("Weight Imputation By Country", self)
+        btn3.clicked.connect(self.Impute_Weight_Mean_Wrap)
+        btn3.resize(btn3.minimumSizeHint())
+        btn3.move(0, 100)
+        vBoxlayout.addWidget(btn3)
+        vBoxlayout.addStretch(4)
+
+        ### Impute Mean from entire dataset
+        btn4 = QtGui.QPushButton("Impute All By Country Mean")
+        btn4.clicked.connect(self.Impute_All_Country_Wrap)
+        btn4.resize(btn4.minimumSizeHint())
+        btn4.move(0, 100)
+        vBoxlayout.addWidget(btn4)
+        vBoxlayout.addStretch(5)
+
+        ### Impute Mean Ages Button
+        btn1 = QtGui.QPushButton("Age Imputation By Dataset", self)
+        btn1.clicked.connect(self.Impute_Age_Dataset_Wrap)
         btn1.resize(btn1.minimumSizeHint())
         btn1.move(0, 100)
         vBoxlayout.addWidget(btn1)
@@ -111,7 +168,7 @@ class Window(QtGui.QMainWindow):
 
         ### Impute Mean Height Button
         btn2 = QtGui.QPushButton("Height Imputation", self)
-        btn2.clicked.connect(self.prep.Impute_Height_Mean)
+        btn2.clicked.connect(self.Impute_Height_Dataset_Wrap)
         btn2.resize(btn2.minimumSizeHint())
         btn2.move(0, 100)
         vBoxlayout.addWidget(btn2)
@@ -119,22 +176,60 @@ class Window(QtGui.QMainWindow):
 
         ### Impute Mean Weight Button
         btn3 = QtGui.QPushButton("Weight Imputation", self)
-        btn3.clicked.connect(self.prep.Impute_Weight_Mean)
+        btn3.clicked.connect(self.Impute_Weight_Dataset_Wrap)
         btn3.resize(btn3.minimumSizeHint())
         btn3.move(0, 100)
         vBoxlayout.addWidget(btn3)
+        vBoxlayout.addStretch(4)
+
+        ### Impute with Country Averages
+        btn5 = QtGui.QPushButton("Impute All By Dataset Mean")
+        btn5.clicked.connect(self.Impute_All_Dataset_Wrap)
+        btn5.resize(btn5.minimumSizeHint())
+        btn5.move(0, 100)
+        vBoxlayout.addWidget(btn5)
+        vBoxlayout.addStretch(6)
+
+        self.progress = QtGui.QProgressBar(self)
+        self.progress.setGeometry(200, 80, 250, 20)
+        vBoxlayout.addWidget(self.progress)
+
+
+
 
         tab2.setLayout(vBoxlayout)
 
-        ### Impute Mean Age from entire dataset
+        ### tab5 (visualization tab)
+
+        vBoxlayout = QtGui.QVBoxLayout(tab5)
+
+        ### Drop Down Menu for variables
+        combo = QtGui.QComboBox(self)
+        combo.currentIndexChanged.connect(self._cb_currentIndexChanged)
+        combo.addItems(self.var_list)
+        vBoxlayout.addWidget(combo)
+
+        ### Plot button
+        btn50 = QtGui.QPushButton("Plot Current Selection")
+        btn50.clicked.connect(self.Plot_Var)
+        btn50.resize(btn50.minimumSizeHint())
+        btn50.move(0,100)
+        vBoxlayout.addWidget(btn50)
+
+        ### Plot canvas
+        #self.figure = Figure()
+        #self.canvas = FigureCanvas(self.figure)
+        #vBoxlayout.addWidget(self.canvas)
+
+        tab5.setLayout(vBoxlayout)
 
         ### Add tabs to widget
         tabs.addTab(tab1, "Home")
         tabs.addTab(tab2, "Imputation")
-        tabs.addTab(tab3, "Tab 3")
-        tabs.addTab(tab4, "Tab 4")
+        tabs.addTab(tab3, "Feature Selection")
+        tabs.addTab(tab4, "Modeling")
+        tabs.addTab(tab5, "Visualization")
 
-        #tabs.show()
 
         ### NEED TO FIGURE OUT HOW TO DO PROGRESS BARS WITH FUNCTIONS IN MODULE
         #self.progress = QtGui.QProgressBar(self)
@@ -163,6 +258,72 @@ class Window(QtGui.QMainWindow):
         del self.other_window
         self.other_window = None
 
+    def Impute_Age_Mean_Wrap(self):
+        self.progress.setRange(0,0)
+        self.Imputation = TaskThread(self.prep,0)
+        self.Imputation.taskFinished.connect(self.Imputation_Finished)
+        self.Imputation.start()
+
+    def Impute_Weight_Mean_Wrap(self):
+        self.progress.setRange(0,0)
+        self.Imputation = TaskThread(self.prep,1)
+        self.Imputation.taskFinished.connect(self.Imputation_Finished)
+        self.Imputation.start()
+
+    def Impute_Height_Mean_Wrap(self):
+        self.progress.setRange(0,0)
+        self.Imputation = TaskThread(self.prep,2)
+        self.Imputation.taskFinished.connect(self.Imputation_Finished)
+        self.Imputation.start()
+
+    def Impute_All_Country_Wrap(self):
+        self.progress.setRange(0,0)
+        self.Imputation = TaskThread(self.prep,3)
+        self.Imputation.taskFinished.connect(self.Imputation_Finished)
+        self.Imputation.start()
+
+    def Impute_Age_Dataset_Wrap(self):
+        self.progress.setRange(0,0)
+        self.Imputation = TaskThread(self.prep,4)
+        self.Imputation.taskFinished.connect(self.Imputation_Finished)
+        self.Imputation.start()
+
+    def Impute_Weight_Dataset_Wrap(self):
+        self.progress.setRange(0,0)
+        self.Imputation = TaskThread(self.prep,5)
+        self.Imputation.taskFinished.connect(self.Imputation_Finished)
+        self.Imputation.start()
+
+    def Impute_Height_Dataset_Wrap(self):
+        self.progress.setRange(0,0)
+        self.Imputation = TaskThread(self.prep,6)
+        self.Imputation.taskFinished.connect(self.Imputation_Finished)
+        self.Imputation.start()
+
+    def Impute_All_Dataset_Wrap(self):
+        self.progress.setRange(0,0)
+        self.Imputation = TaskThread(self.prep,7)
+        self.Imputation.taskFinished.connect(self.Imputation_Finished)
+        self.Imputation.start()
+
+    def Imputation_Finished(self):
+        self.progress.setRange(0,1)
+
+    def _cb_currentIndexChanged(self, idx):
+        self.idx = idx
+        self.plot_data = self.prep.Plot_Histogram(self.var_list[idx])
+
+    def Plot_Var(self):
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+        self.figure.axes.clear()
+        self.figure.axes.append(self.plot_data)
+        #self.figure.canvas.draw()
+        plt.xlabel(self.var_list[self.idx])
+        plt.title(self.var_list[self.idx])
+        plt.show()
+
+
     def close_application(self):
         print("whooaaaa so custom!!!")
         sys.exit()
@@ -174,9 +335,36 @@ class Variables(QtGui.QMainWindow):
         self.button = QtGui.QPushButton('Quit', self)
         self.connect(self.button, SIGNAL('clicked()'), self.close)
         self.button.move(0,50)
-        text_edit = QtGui.QPlainTextEdit()
-        text = open('scratch.txt').read()
-        text_edit.setPlainText(text)
+        self.text_edit = QtGui.QTextEdit()
+        self.setCentralWidget(self.text_edit)
+        self.text = open('scratch.txt','r').read()
+        self.text_edit.setText(self.text)
+
+class TaskThread(QtCore.QThread):
+    taskFinished = QtCore.pyqtSignal()
+    def __init__(self,prep_obj,imp_type):
+        super(QtCore.QThread,self).__init__()
+        self.prep = prep_obj
+        self.imp_type = imp_type
+
+    def run(self):
+        if self.imp_type == 0:
+            self.prep.Impute_Age_Mean()
+        elif self.imp_type == 1:
+            self.prep.Impute_Weight_Mean()
+        elif self.imp_type == 2:
+            self.prep.Impute_Height_Mean()
+        elif self.imp_type == 3:
+            self.prep.Impute_All_Country()
+        elif self.imp_type == 4:
+            self.prep.Impute_Age_Dataset()
+        elif self.imp_type == 5:
+            self.prep.Impute_Weight_Dataset()
+        elif self.imp_type == 6:
+            self.prep.Impute_Height_Dataset()
+        elif self.imp_type == 7:
+            self.prep.Impute_All_Dataset()
+        self.taskFinished.emit()
 
 
 def run():

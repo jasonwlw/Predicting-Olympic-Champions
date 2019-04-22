@@ -145,4 +145,8 @@ class PreProcessing:
 
 
 
-
+    def Plot_Histogram(self,var,bin_num = 50):
+        if var == '':
+            pass
+        else:
+            return self.df1[var].hist(bins = bin_num)
