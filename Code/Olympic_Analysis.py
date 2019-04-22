@@ -9,7 +9,8 @@ from collections import defaultdict
 
 from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import OneHotEncoder
-
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 
 class PreProcessing:
 
@@ -150,3 +151,20 @@ class PreProcessing:
             pass
         else:
             return self.df1[var].hist(bins = bin_num)
+
+    def Plot_Corr(self):
+        corr = self.df1.corr()
+        return sns.heatmap(corr,xticklabels=corr.columns,yticklabels=corr.columns,vmin=-1,vmax=1,annot=True)
+
+    def Standardize(self):
+        sc = StandardScaler()
+        sc.fit(self.X_train)
+        self.X_train = sc.transform(self.X_train)
+        self.X_test = sc.transform(self.X_test)
+        #X_combined_std = np.vstack((X_train_std, X_test_std))
+        #y_combined = np.hstack((y_train, y_test))
+
+    def Train_Test_Split(self):
+        X = self.df1[['Sex', 'Age', 'Height', 'Weight', 'Team', 'NOC', 'Year', 'Season', 'City', 'Event']].copy()
+        y = self.df1['Medal']
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.3, random_state=0)

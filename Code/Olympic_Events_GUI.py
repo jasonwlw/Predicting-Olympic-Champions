@@ -45,7 +45,7 @@ class Window(QtGui.QMainWindow):
 
         self.connect(self, SIGNAL('main2closed()'), self.clearVars)
 
-
+        self.standard = False
 
         ### For drop down menu
         ### Some variables do not work; non-numeric don't
@@ -92,6 +92,7 @@ class Window(QtGui.QMainWindow):
         tab3 = QtGui.QWidget()
         tab4 = QtGui.QWidget()
         tab5 = QtGui.QWidget()
+        tab6 = QtGui.QWidget()
 
         tabs.resize(250, 150)
 
@@ -108,6 +109,8 @@ class Window(QtGui.QMainWindow):
         btn0.move(0,50)
         vBoxlayout.addWidget(btn0)
 
+
+        ### Button to pull up variable description
         btn00 = QtGui.QPushButton("Variable Description",self)
         btn00.clicked.connect(self.Variable_Descrip)
         btn00.resize(btn00.minimumSizeHint())
@@ -199,6 +202,28 @@ class Window(QtGui.QMainWindow):
 
         tab2.setLayout(vBoxlayout)
 
+        ### tab3 (feature selection)
+        vBoxlayout = QtGui.QVBoxLayout(tab3)
+
+        btn30 = QtGui.QPushButton("Plot Correlations")
+        btn30.clicked.connect(self.Plot_Corr)
+        btn30.resize(btn30.minimumSizeHint())
+        btn30.move(0,100)
+        vBoxlayout.addWidget(btn30)
+
+        tab3.setLayout(vBoxlayout)
+
+        ###tab 4 (data transformation)
+        vBoxlayout = QtGui.QVBoxLayout(tab4)
+
+        btn40 = QtGui.QPushButton("Standardize Variables")
+        btn40.clicked.connect(self.Standardize)
+        btn40.resize(btn40.minimumSizeHint())
+        btn40.move(0,100)
+        vBoxlayout.addWidget(btn40)
+
+        tab4.setLayout(vBoxlayout)
+
         ### tab5 (visualization tab)
 
         vBoxlayout = QtGui.QVBoxLayout(tab5)
@@ -223,12 +248,34 @@ class Window(QtGui.QMainWindow):
 
         tab5.setLayout(vBoxlayout)
 
+        ### tab 6 (modeling)
+        vBoxlayout = QtGui.QVBoxLayout(tab6)
+
+        btn60 = QtGui.QPushButton("Decision Tree")
+        btn60.clicked.connect(self.Decision_Tree)
+        btn60.resize(btn60.minimumSizeHint())
+        btn60.move(0,100)
+        vBoxlayout.addWidget(btn60)
+
+        btn61 = QtGui.QPushButton("Logistic Regression")
+        btn61.clicked.connect(self.Log_Reg)
+        btn61.resize(btn61.minimumSizeHint())
+        btn61.move(0,100)
+        vBoxlayout.addWidget(btn61)
+
+        self.progress_model = QtGui.QProgressBar(self)
+        self.progress_model.setGeometry(200, 80, 250, 20)
+        vBoxlayout.addWidget(self.progress_model)
+
+        tab6.setLayout(vBoxlayout)
+
         ### Add tabs to widget
         tabs.addTab(tab1, "Home")
         tabs.addTab(tab2, "Imputation")
         tabs.addTab(tab3, "Feature Selection")
-        tabs.addTab(tab4, "Modeling")
+        tabs.addTab(tab4, "Data Transformation")
         tabs.addTab(tab5, "Visualization")
+        tabs.addTab(tab6, "Modeling")
 
 
         ### NEED TO FIGURE OUT HOW TO DO PROGRESS BARS WITH FUNCTIONS IN MODULE
@@ -323,6 +370,37 @@ class Window(QtGui.QMainWindow):
         plt.title(self.var_list[self.idx])
         plt.show()
 
+    def Plot_Corr(self):
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self.figure)
+        self.figure.axes.clear()
+        self.plot_data = self.prep.Plot_Corr()
+        self.figure.axes.append(self.plot_data)
+        plt.show()
+
+    def Standardize(self):
+        self.standard = True
+
+    def Decision_Tree(self):
+        self.progress_model.setRange(0,0)
+        self.prep.Train_Test_Split()
+        if self.standard:
+            self.prep.Standardize()
+        self.Modeling = TaskThread_Model(self.prep,0)
+        self.Modeling.taskFinished.connect(self.Modeling_Finished)
+        self.Modeling.start()
+
+    def Log_Reg(self):
+        self.progress_model.setRange(0, 0)
+        self.prep.Train_Test_Split()
+        if self.standard:
+            self.prep.Standardize()
+        self.Modeling = TaskThread_Model(self.prep,1)
+        self.Modeling.taskFinished.connect(self.Modeling_Finished)
+        self.Modeling.start()
+
+    def Modeling_Finished(self):
+        self.progress_model.setRange(0,1)
 
     def close_application(self):
         print("whooaaaa so custom!!!")
@@ -364,6 +442,20 @@ class TaskThread(QtCore.QThread):
             self.prep.Impute_Height_Dataset()
         elif self.imp_type == 7:
             self.prep.Impute_All_Dataset()
+        self.taskFinished.emit()
+
+class TaskThread_Model(QtCore.QThread):
+    taskFinished = QtCore.pyqtSignal()
+    def __init__(self,prep_obj,model_type):
+        super(QtCore.QThread,self).__init__()
+        self.prep = prep_obj
+        self.model_type = model_type
+
+    def run(self):
+        if self.model_type == 0:
+            self.prep.Decision_Tree()
+        elif self.model_type == 1:
+            self.prep.Log_Reg()
         self.taskFinished.emit()
 
 
