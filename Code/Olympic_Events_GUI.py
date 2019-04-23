@@ -20,9 +20,6 @@ import Olympic_Analysis as OA
 
 
 ### TODO: MAKE TEXT IN VARIABLE DESCRIPTION READ ONLY (LOW PRIORITY)
-### TODO: ADD BEFORE AND AFTER HISTOGRAMS OF DATA FOR IMPUTATION
-### TODO: ADD FEATURE SELECTION TAB, VISUALS SHOWING HOW DATASET CHANGES
-### TODO: FIGURE OUT PROGRESS BARS FOR IMPUTATION
 ### TODO: DATA TRANSFORMATION TAB TO CONVERT TO BMI WITH VISUALS
 ### TODO: DATA NORMALIZATION TAB FOR LOGISTIC REGRESSION (MINMAX OR STANDARDIZATION, CHOOSE VARIABLES)
 ### TODO: CLASS BALANCING TAB FOR CLASS IMBALANCE (CHOOSE HOW TO BALANCE, IF SELECT DIFFERENT ONE CAN JUST RELOAD ENTIRE Y
@@ -54,6 +51,8 @@ class Window(QtGui.QMainWindow):
 
         ### Need to add way in Olympic_Analysis to plot Medal histogram, it;s important
         self.var_list = ['','Age','Height','Weight','Year','Medal']
+
+
 
         '''
         extractAction = QtGui.QAction("&GET TO THE CHOPPAH!!!", self)
@@ -222,6 +221,13 @@ class Window(QtGui.QMainWindow):
         btn40.move(0,100)
         vBoxlayout.addWidget(btn40)
 
+
+        btn41 = QtGui.QPushButton("Enter Year Split")
+        btn41.clicked.connect(self.getint)
+        self.le41 = 1990
+        vBoxlayout.addWidget(btn41)
+        #vBoxlayout.addWidget(le41)
+
         tab4.setLayout(vBoxlayout)
 
         ### tab5 (visualization tab)
@@ -380,6 +386,13 @@ class Window(QtGui.QMainWindow):
 
     def Standardize(self):
         self.standard = True
+
+    def getint(self):
+        num, ok = QtGui.QInputDialog.getDouble(self, "integer input dialog", "enter a number")
+
+        if ok:
+            self.le2 = num
+            self.prep.Drop_Years(self.le2)
 
     def Decision_Tree(self):
         self.progress_model.setRange(0,0)

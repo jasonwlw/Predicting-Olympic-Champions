@@ -16,13 +16,23 @@ class PreProcessing:
 
     def __init__(self):
         self.df1,self.df2 = self.Read_Data()
-
+        self.Encode_Medal()
+        ### Encode other variables here
+        self.Train_Test_Split()
+        self.sc = StandardScaler()
+        #self.sc.fit(self.X_train)
 
 
     def Read_Data(self):
         df1 = pd.read_csv('athlete_events.csv')
         df2 = pd.read_csv('noc_regions.csv')
         return (df1,df2)
+
+    def Encode_Medal(self):
+        mask = self.df1['Medal'].isna()
+        self.df1.loc[mask,'Medal'] = 0
+        mask = np.logical_not(mask)
+        self.df1.loc[mask,'Medal'] = 1
 
     def Print_MVs(self):
         return self.df1.isna().sum()
@@ -48,6 +58,7 @@ class PreProcessing:
             ctr = ctr + 1
             #progress.setValue(float(ctr / nrows) * 100)
         print("Number of updates", count)
+        self.Train_Test_Split()
         #End Impute_Age_Mean
 
 
@@ -80,6 +91,7 @@ class PreProcessing:
             ctr = ctr+1
             #progress.setValue(float(ctr / nrows) * 100)
         print("Number of height updates",count)
+        self.Train_Test_Split()
 
         #End Impute_Height_Mean()
 
@@ -106,6 +118,7 @@ class PreProcessing:
             ctr = ctr+1
             #progress.setValue(float(ctr / nrows) * 100)
         print("Number of Weight updates",count)
+        self.Train_Test_Split()
 
     ## End Impute_Weight_Mean
 
@@ -124,6 +137,7 @@ class PreProcessing:
             if (pd.isnull(self.df1['Age'].iloc[ctr])):
                 self.df1.at[ctr, 'Age'] = mean_age
                 count = count + 1
+        self.Train_Test_Split()
 
     def Impute_Weight_Dataset(self):
         mean_weight = self.df1.Weight.mean()
@@ -131,6 +145,7 @@ class PreProcessing:
             if (pd.isnull(self.df1['Weight'].iloc[ctr])):
                 self.df1.at[ctr, 'Weight'] = mean_weight
                 count = count + 1
+        self.Train_Test_Split()
 
     def Impute_Height_Dataset(self):
         mean_height = self.df1.Height.mean()
@@ -138,6 +153,7 @@ class PreProcessing:
             if (pd.isnull(self.df1['Height'].iloc[ctr])):
                 self.df1.at[ctr, 'Height'] = mean_height
                 count = count + 1
+        self.Train_Test_Split()
 
     def Impute_All_Dataset(self):
         self.Impute_Weight_Dataset()
@@ -157,10 +173,8 @@ class PreProcessing:
         return sns.heatmap(corr,xticklabels=corr.columns,yticklabels=corr.columns,vmin=-1,vmax=1,annot=True)
 
     def Standardize(self):
-        sc = StandardScaler()
-        sc.fit(self.X_train)
-        self.X_train = sc.transform(self.X_train)
-        self.X_test = sc.transform(self.X_test)
+        self.X_train = self.sc.transform(self.X_train)
+        self.X_test = self.sc.transform(self.X_test)
         #X_combined_std = np.vstack((X_train_std, X_test_std))
         #y_combined = np.hstack((y_train, y_test))
 
@@ -168,3 +182,8 @@ class PreProcessing:
         X = self.df1[['Sex', 'Age', 'Height', 'Weight', 'Team', 'NOC', 'Year', 'Season', 'City', 'Event']].copy()
         y = self.df1['Medal']
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+
+    def Drop_Years(self,split):
+        self.df1.drop(self.df1[self.df1.Year < split].index,inplace = True)
+        ### Redo Train Test Split to update all used dataframes
+        self.Train_Test_Split()
