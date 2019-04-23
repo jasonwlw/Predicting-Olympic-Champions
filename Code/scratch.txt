@@ -1,0 +1,32 @@
+Variables in Olympic Dataset:
+
+ID: A unique ID number for each Olympian
+
+Name: The first and last name of each Olympian
+
+Sex: Whether the Olympian is Male or Female
+
+Age: Age of the Olympian in years
+
+Height: Height of the Olympian in centimeters
+
+Weight: Weight of the Olympian in kilograms
+
+Team: Name of Olympian's Team
+
+NOC: National Olympic Committee 3-letter Country Code
+
+Games: Year and Season of the games
+
+Year: Year of the Games
+
+Season: Winter or Summer Season
+
+City: Host city for the games
+
+Sport: More general than events, i.e. Skiing is the sport, Men's Cross
+Country Skiing is the Event
+
+Event: Specified event the Olympian competed in, see above
+
+Medal: Whether the Olympian received no medal, a Bronze medal, a Silver medal, or a Gold medal.
