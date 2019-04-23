@@ -70,11 +70,6 @@ class Window(QtGui.QMainWindow):
         self.home()
 
 
-    def Read_Data(self):
-        df1 = pd.read_csv('athlete_events.csv')
-        df2 = pd.read_csv('noc_regions.csv')
-        return (df1, df2)
-
     def home(self):
 
         ### Set main widget
@@ -123,7 +118,7 @@ class Window(QtGui.QMainWindow):
         vBoxlayout.addStretch(1)
 
         ### Impute Mean Ages Button
-        btn1 = QtGui.QPushButton("Age Imputation By Country", self)
+        btn1 = QtGui.QPushButton("Age Imputation By Country Mean", self)
         btn1.clicked.connect(self.Impute_Age_Mean_Wrap)
         btn1.resize(btn1.minimumSizeHint())
         btn1.move(0, 100)
@@ -134,7 +129,7 @@ class Window(QtGui.QMainWindow):
         vBoxlayout.addStretch(2)
 
         ### Impute Mean Height Button
-        btn2 = QtGui.QPushButton("Height Imputation By Country", self)
+        btn2 = QtGui.QPushButton("Height Imputation By Country Mean", self)
         btn2.clicked.connect(self.Impute_Height_Mean_Wrap)
         btn2.resize(btn2.minimumSizeHint())
         btn2.move(0, 100)
@@ -142,7 +137,7 @@ class Window(QtGui.QMainWindow):
         vBoxlayout.addStretch(3)
 
         ### Impute Mean Weight Button
-        btn3 = QtGui.QPushButton("Weight Imputation By Country", self)
+        btn3 = QtGui.QPushButton("Weight Imputation By Country Mean", self)
         btn3.clicked.connect(self.Impute_Weight_Mean_Wrap)
         btn3.resize(btn3.minimumSizeHint())
         btn3.move(0, 100)
@@ -158,7 +153,7 @@ class Window(QtGui.QMainWindow):
         vBoxlayout.addStretch(5)
 
         ### Impute Mean Ages Button
-        btn1 = QtGui.QPushButton("Age Imputation By Dataset", self)
+        btn1 = QtGui.QPushButton("Age Imputation By Dataset Mean", self)
         btn1.clicked.connect(self.Impute_Age_Dataset_Wrap)
         btn1.resize(btn1.minimumSizeHint())
         btn1.move(0, 100)
@@ -169,7 +164,7 @@ class Window(QtGui.QMainWindow):
         vBoxlayout.addStretch(2)
 
         ### Impute Mean Height Button
-        btn2 = QtGui.QPushButton("Height Imputation", self)
+        btn2 = QtGui.QPushButton("Height Imputation By Dataset Mean", self)
         btn2.clicked.connect(self.Impute_Height_Dataset_Wrap)
         btn2.resize(btn2.minimumSizeHint())
         btn2.move(0, 100)
@@ -177,7 +172,7 @@ class Window(QtGui.QMainWindow):
         vBoxlayout.addStretch(3)
 
         ### Impute Mean Weight Button
-        btn3 = QtGui.QPushButton("Weight Imputation", self)
+        btn3 = QtGui.QPushButton("Weight Imputation By Dataset Mean", self)
         btn3.clicked.connect(self.Impute_Weight_Dataset_Wrap)
         btn3.resize(btn3.minimumSizeHint())
         btn3.move(0, 100)
@@ -210,6 +205,12 @@ class Window(QtGui.QMainWindow):
         btn30.move(0,100)
         vBoxlayout.addWidget(btn30)
 
+        btn31 = QtGui.QPushButton("Principle Components Analysis")
+        btn31.clicked.connect(self.getint_PCA)
+        btn31.resize(btn31.minimumSizeHint())
+        btn31.move(0,100)
+        vBoxlayout.addWidget(btn31)
+
         tab3.setLayout(vBoxlayout)
 
         ###tab 4 (data transformation)
@@ -227,6 +228,18 @@ class Window(QtGui.QMainWindow):
         self.le41 = 1990
         vBoxlayout.addWidget(btn41)
         #vBoxlayout.addWidget(le41)
+
+        btn42 = QtGui.QPushButton("Upsample Medal Class")
+        btn42.clicked.connect(self.Upsampling)
+        btn42.resize(btn42.minimumSizeHint())
+        btn42.move(0,100)
+        vBoxlayout.addWidget(btn42)
+
+        btn43 = QtGui.QPushButton("Downsample No-Medal Class")
+        btn43.clicked.connect(self.Downsampling)
+        btn43.resize(btn43.minimumSizeHint())
+        btn43.move(0,100)
+        vBoxlayout.addWidget(btn43)
 
         tab4.setLayout(vBoxlayout)
 
@@ -268,6 +281,19 @@ class Window(QtGui.QMainWindow):
         btn61.resize(btn61.minimumSizeHint())
         btn61.move(0,100)
         vBoxlayout.addWidget(btn61)
+
+        btn62 = QtGui.QPushButton("Classification Report", self)
+        btn62.clicked.connect(self.Class_Report)
+        btn62.resize(btn62.minimumSizeHint())
+        btn62.move(0, 50)
+        vBoxlayout.addWidget(btn62)
+
+        btn63 = QtGui.QPushButton("Plot Confusion Matrix", self)
+        btn63.clicked.connect(self.prep.Plot_Confusion_Matrix)
+        btn63.resize(btn63.minimumSizeHint())
+        btn63.move(0, 50)
+        vBoxlayout.addWidget(btn63)
+
 
         self.progress_model = QtGui.QProgressBar(self)
         self.progress_model.setGeometry(200, 80, 250, 20)
@@ -367,6 +393,7 @@ class Window(QtGui.QMainWindow):
         self.plot_data = self.prep.Plot_Histogram(self.var_list[idx])
 
     def Plot_Var(self):
+        ### FOr some reason if plot current variable is hit twice, without changing index, nothing will plot
         self.figure = Figure()
         self.canvas = FigureCanvas(self.figure)
         self.figure.axes.clear()
@@ -385,29 +412,36 @@ class Window(QtGui.QMainWindow):
         plt.show()
 
     def Standardize(self):
-        self.standard = True
+        self.prep.Standardize()
+
+    def Upsampling(self):
+        self.prep.Upsampling()
+
+    def Downsampling(self):
+        self.prep.Downsampling()
 
     def getint(self):
-        num, ok = QtGui.QInputDialog.getDouble(self, "integer input dialog", "enter a number")
+        num, ok = QtGui.QInputDialog.getDouble(self, "Year Drop", "Drop Years Below:")
 
         if ok:
             self.le2 = num
             self.prep.Drop_Years(self.le2)
 
+    def getint_PCA(self):
+        num, ok = QtGui.QInputDialog.getDouble(self, "PCA", "Number of PCA Components:")
+
+        if ok:
+            self.comp = num
+            self.prep.PCA_Transform(comp = self.comp)
+
     def Decision_Tree(self):
         self.progress_model.setRange(0,0)
-        self.prep.Train_Test_Split()
-        if self.standard:
-            self.prep.Standardize()
         self.Modeling = TaskThread_Model(self.prep,0)
         self.Modeling.taskFinished.connect(self.Modeling_Finished)
         self.Modeling.start()
 
     def Log_Reg(self):
         self.progress_model.setRange(0, 0)
-        self.prep.Train_Test_Split()
-        if self.standard:
-            self.prep.Standardize()
         self.Modeling = TaskThread_Model(self.prep,1)
         self.Modeling.taskFinished.connect(self.Modeling_Finished)
         self.Modeling.start()
@@ -415,9 +449,15 @@ class Window(QtGui.QMainWindow):
     def Modeling_Finished(self):
         self.progress_model.setRange(0,1)
 
-    def close_application(self):
-        print("whooaaaa so custom!!!")
-        sys.exit()
+    def Class_Report(self):
+        #self.other_window0 = Classification_Report()
+        #self.connect(self.other_window, SIGNAL('closed()'), self.ClassClosed)
+        #self.other_window0.show()
+        self.prep.Class_Report()
+
+    def ClassClosed(self):
+        self.emit(SIGNAL('main1closed()'))
+
 
 class Variables(QtGui.QMainWindow):
     def __init__(self, parent=None):
@@ -466,11 +506,22 @@ class TaskThread_Model(QtCore.QThread):
 
     def run(self):
         if self.model_type == 0:
-            self.prep.Decision_Tree()
+            self.prep.Decision_Trees()
         elif self.model_type == 1:
             self.prep.Log_Reg()
         self.taskFinished.emit()
 
+class Classification_Report(QtGui.QMainWindow):
+    def __init__(self, parent=None):
+        QtGui.QMainWindow.__init__(self, parent)
+        self.setGeometry(50,50,500,300)
+        self.button = QtGui.QPushButton('Quit', self)
+        self.connect(self.button, SIGNAL('clicked()'), self.close)
+        self.button.move(0,50)
+        self.text_edit = QtGui.QTextEdit()
+        self.setCentralWidget(self.text_edit)
+        self.text = open('scratch.txt','r').read()
+        self.text_edit.setText(self.text)
 
 def run():
     app = QtGui.QApplication(sys.argv)
