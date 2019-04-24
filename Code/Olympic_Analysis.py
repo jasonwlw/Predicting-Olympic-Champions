@@ -150,25 +150,28 @@ class PreProcessing:
 
     def Impute_Age_Dataset(self):
         mean_age = self.df1.Age.mean()
+        count = 0
         for index,row in self.df1.iterrows():
-            if (pd.isnull(self.df1['Age'].iloc[ctr])):
-                self.df1.at[ctr, 'Age'] = mean_age
+            if (pd.isnull(self.df1['Age'].iloc[count])):
+                self.df1.at[count, 'Age'] = mean_age
                 count = count + 1
         self.Train_Test_Split()
 
     def Impute_Weight_Dataset(self):
         mean_weight = self.df1.Weight.mean()
+        count = 0
         for index,row in self.df1.iterrows():
-            if (pd.isnull(self.df1['Weight'].iloc[ctr])):
-                self.df1.at[ctr, 'Weight'] = mean_weight
+            if (pd.isnull(self.df1['Weight'].iloc[count])):
+                self.df1.at[count, 'Weight'] = mean_weight
                 count = count + 1
         self.Train_Test_Split()
 
     def Impute_Height_Dataset(self):
         mean_height = self.df1.Height.mean()
+        count = 0
         for index,row in self.df1.iterrows():
-            if (pd.isnull(self.df1['Height'].iloc[ctr])):
-                self.df1.at[ctr, 'Height'] = mean_height
+            if (pd.isnull(self.df1['Height'].iloc[count])):
+                self.df1.at[count, 'Height'] = mean_height
                 count = count + 1
         self.Train_Test_Split()
 
@@ -206,9 +209,13 @@ class PreProcessing:
         self.X_train = pca.fit_transform(self.X_train)
         #self.df1[self.train_cols] = pca.transform(self.df1[self.train_cols])
         self.X_test = pca.transform(self.X_test)
+        self.sc.fit(self.X_train)
         explained_variance = pca.explained_variance_ratio_
         explained_variance_sum = pca.explained_variance_ratio_.cumsum()
         sns.set()
+        plt.title("PCA")
+        plt.xlabel("Number of Components")
+        plt.ylabel("Variance Explained")
         sns.scatterplot(np.arange(1,comp+1),explained_variance_sum)
         plt.show()
 
@@ -234,6 +241,10 @@ class PreProcessing:
         self.Train_Test_Split()
 
     def Upsampling(self):
+        #self.train = pd.concat([self.X_train,self.y_train],axis = 1,sort = False)
+        #df_majority = self.train[self.train.Medal == 0]
+        #df_minority = self.train[self.train.Medal == 1]
+        #n_samples = self.train.Medal.value_counts()[0]
         df_majority = self.df1[self.df1.Medal == 0]
         df_minority = self.df1[self.df1.Medal == 1]
         n_samples = self.df1.Medal.value_counts()[0]
@@ -241,11 +252,20 @@ class PreProcessing:
                                          replace=True,  # sample with replacement
                                          n_samples=n_samples,  # to match majority class
                                          random_state=123) # reproducible results
+        #self.train = pd.concat([df_majority,df_minority_upsampled])
         self.df1 = pd.concat([df_majority,df_minority_upsampled])
-        self.df1 = self.df1.reset_index()
+        #self.train = self.train.reset_index()
+        #self.test = pd.concat([self.X_test,self.y_test],axis = 1, sort = False)
+        #self.X_train = self.train[self.train_cols]
+        #self.y_train = self.train['Medal']
+        #self.df1 = pd.concat([self.train,self.test])
         self.Train_Test_Split()
 
     def Downsampling(self):
+        #self.train = pd.concat([self.X_train,self.y_train],axis = 1,sort = False)
+        #df_majority = self.train[self.train.Medal == 0]
+        #df_minority = self.train[self.train.Medal == 1]
+        #n_samples = self.train.Medal.value_counts()[1]
         df_majority = self.df1[self.df1.Medal == 0]
         df_minority = self.df1[self.df1.Medal == 1]
         n_samples = self.df1.Medal.value_counts()[1]
@@ -254,11 +274,15 @@ class PreProcessing:
                                          n_samples=n_samples,  # to match majority class
                                          random_state=123) # reproducible results
         self.df1 = pd.concat([df_majority_downsampled,df_minority])
-        self.df1 = self.df1.reset_index()
+        #self.train = self.train.reset_index()
+        #self.test = pd.concat([self.X_test,self.y_test],axis = 1, sort = False)
+        #self.X_train = self.train[self.train_cols]
+        #self.y_train = self.train['Medal']
+        #self.df1 = pd.concat([self.train,self.test],axis=0,sort=False).reset_index()
         self.Train_Test_Split()
 
-    def Decision_Trees(self):
-        self.clf = RandomForestClassifier(random_state=123)
+    def Decision_Trees(self,max_depth):
+        self.clf = RandomForestClassifier(random_state=123,max_depth=max_depth)
         self.clf.fit(self.X_train, self.y_train)
         self.y_pred = self.clf.predict(self.X_test)
 
@@ -274,12 +298,13 @@ class PreProcessing:
 
     def Plot_Confusion_Matrix(self, normalize=False):  # This function prints and plots the confusion matrix.
         cm = confusion_matrix(self.y_test, self.y_pred, labels=[0, 1])
-        classes = ["Will Win", "Will Lose"]
+        classes = ["Will Lose", "Will Win"]
         cmap = plt.cm.Blues
         title = "Confusion Matrix"
         if normalize:
             cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
             cm = np.around(cm, decimals=3)
+        fig = plt.figure()
         plt.imshow(cm, interpolation='nearest', cmap=cmap)
         plt.title(title)
         plt.colorbar()
@@ -290,7 +315,8 @@ class PreProcessing:
         for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
             plt.text(j, i, cm[i, j],
                      horizontalalignment="center",
-                     color="white" if cm[i, j] > thresh else "black")
+                     color = "black")
+            #color = "white" if cm[i, j] > thresh else "black"
         plt.tight_layout()
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
